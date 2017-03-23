@@ -1,5 +1,4 @@
 #include "hilevel.h"
-#include "hilevel.h"
 
 pcb_t pcb[ 3 ], *current = NULL;
 
@@ -50,18 +49,11 @@ void hilevel_handler_rst( ctx_t* ctx              ) {
   pcb[ 2 ].ctx.pc   = ( uint32_t )( &main_P5 );
   pcb[ 2 ].ctx.sp   = ( uint32_t )( &tos_P5  );
 
-  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
-  TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
-  TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
-  TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
-  TIMER0->Timer1Ctrl |= 0x00000080; // enable          timer
+  start_timer();
 
-  GICC0->PMR          = 0x000000F0; // unmask all            interrupts
-  GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
-  GICC0->CTLR         = 0x00000001; // enable GIC interface
-  GICD0->CTLR         = 0x00000001; // enable GIC distributor
+  current = &pcb[ 0 ];
+  memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
 
-  current = &pcb[ 0 ]; memcpy( ctx, &current->ctx, sizeof( ctx_t ) );
   int_enable_irq();
 
   return;
@@ -112,4 +104,17 @@ void hilevel_handler_svc( ctx_t* ctx, uint32_t id ) {
   }
 
   return;
+}
+
+void start_timer(){
+  TIMER0->Timer1Load  = 0x00100000; // select period = 2^20 ticks ~= 1 sec
+  TIMER0->Timer1Ctrl  = 0x00000002; // select 32-bit   timer
+  TIMER0->Timer1Ctrl |= 0x00000040; // select periodic timer
+  TIMER0->Timer1Ctrl |= 0x00000020; // enable          timer interrupt
+  TIMER0->Timer1Ctrl |= 0x00000080; // enable          timer
+
+  GICC0->PMR          = 0x000000F0; // unmask all            interrupts
+  GICD0->ISENABLER1  |= 0x00000010; // enable timer          interrupt
+  GICC0->CTLR         = 0x00000001; // enable GIC interface
+  GICD0->CTLR         = 0x00000001; // enable GIC distributor
 }
